@@ -26,12 +26,12 @@ def index():
     return '''
     <h1>Acceso a Parqueadero</h1>
     <form method="post" action="/register">
-        <input type="text" name="license_plate" placeholder="Placa" required>
+        <input type="text" name="license_plate" placeholder="Placa" required, maxlength="7">
         <select name="action" required>
-            <option value="entry">Entry</option>
-            <option value="exit">Exit</option>
+            <option value="entry">Entrada</option>
+            <option value="exit">Salida</option>
         </select>
-        <button type="submit">Register</button>
+        <button type="submit">Registrar</button>
     </form>
     '''
 
@@ -69,7 +69,7 @@ def get_records():
     conn.close()
     return jsonify(records)
 
-#clear all records (for testing purposes)
+#clear all records
 @app.route('/clear', methods=['POST'])
 def clear_records():
     conn = sqlite3.connect(DB_PATH)
