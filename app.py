@@ -60,7 +60,7 @@ def register():
     return jsonify({'status': 'success', 'message': f'License plate {license_plate} registered for {action}'})
 
 #Query to get all parking records
-@app.route('/registros', methods=['GET'])
+@app.route('/records', methods=['GET'])
 def get_records():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -70,7 +70,7 @@ def get_records():
     return jsonify(records)
 
 #clear all records
-@app.route('/clear', methods=['POST'])
+@app.route('/clear', methods=['GET'])
 def clear_records():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
