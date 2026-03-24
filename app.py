@@ -2,10 +2,10 @@ from flask import Flask, render_template, request, jsonify
 from datetime import datetime
 import sqlite3
 from pathlib import Path
+# Main application
 
 app = Flask(__name__)
 DB_PATH = "parking.db"
-
 def init_db():
     """Initialize database with parking records table"""
     conn = sqlite3.connect(DB_PATH)
