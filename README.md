@@ -1,7 +1,9 @@
 GRUPO 7 - SERVICIO API PARA GESTION DE PARQUEADEROS
 
-Parte 1 – Construcción del API\n
-•	Código fuente del API\n
+Parte 1 – Construcción del API
+
+•	Código fuente del API
+
 Como parte del ejercicio desarrollamos un api básico para gestionar el ingreso y salida de un parqueadero, basados en el número de placa, levantamos un html simple que al ingresar el número de placa permite registrar la hora de ingreso y salida de los vehículos, además permite calcular el valor a pagar y registro del pago para permitir la salida del vehículo del parqueadero.
 Se desarrolló el API utilizando Flask, además se hace uso de las librerías datetime, math y sqlite3 para implementar una base de datos sencilla que almacene los datos de vehículos y los registros de entrada y salida.
 Además del endpoint principal, se desarrollaron los endpoints para el cálculo del valor a pagar y para consultar y borrar registros de la base de datos sqlite
