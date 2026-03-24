@@ -17,7 +17,8 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             license_plate TEXT NOT NULL,
             entry_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            exit_time TIMESTAMP
+            exit_time TIMESTAMP,
+            paid_status BOOLEAN DEFAULT 0       
         )
     ''')
     conn.commit()
@@ -102,15 +103,15 @@ def calcular_pago_api(license_plate):
 @app.route('/calcular_pago', methods=['GET'])
 def calcular_pago_html():
     license_plate = request.args.get('license_plate')
-
+ 
     if not license_plate:
         return "<h2>Error: debe ingresar placa</h2><a href='/'>Volver</a>"
-
+ 
     data, status = calcular_pago_logica(license_plate)
-
+ 
     if status != 200:
         return f"<h2>{data['error']}</h2><a href='/'>Volver</a>"
-
+ 
     return f"""
     <h2>Pago para {license_plate.upper()}</h2>
     <p>Hora ingreso: {data['hora_ingreso']}</p>
@@ -119,6 +120,21 @@ def calcular_pago_html():
     <p>Horas cobradas: {data['horas_cobradas']}</p>
     <p>Tarifa por hora: ${data['tarifa_por_hora']}</p>
     <p><strong>Total a pagar: ${data['total_pagar']}</strong></p>
+ 
+    <button onclick="pagar()">Pagar</button>
+ 
+    <script>
+    function pagar() {{
+        fetch('/api/pagar/{license_plate.upper()}', {{
+            method: 'POST'
+        }})
+        .then(res => res.json())
+        .then(data => alert(data.message || data.error))
+        .catch(err => alert('Error al procesar pago'));
+    }}
+    </script>
+ 
+    <br><br>
     <a href="/">Volver</a>
     """
 
@@ -167,6 +183,37 @@ def clear_records():
     conn.commit()
     conn.close()
     return jsonify({'status': 'success', 'message': 'All records cleared'})
+
+
+@app.route('/api/pagar/<license_plate>', methods=['POST'])
+def pagar(license_plate):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT id, exit_time from parking_records where license_plate = ? and paid_status = 0 order by id desc limit 1
+    ''', (license_plate.upper(),))
+ 
+    record = cursor.fetchone()
+    conn.close()
+ 
+    if not record:
+        return jsonify({'error': 'No existe registro pendiente de pago'}), 404
+ 
+    record_id, exit_time = record
+ 
+    if not exit_time:
+        return jsonify({'error': 'El vehículo aún no ha salido'}), 400
+ 
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('''
+        UPDATE parking_records SET paid_status = 1 WHERE id = ?
+    ''', (record_id,))
+    conn.commit()
+    conn.close()
+ 
+    return jsonify({'message': f'Pago procesado para {license_plate.upper()}'}), 200
+
 
 if __name__ == '__main__':
     init_db()
