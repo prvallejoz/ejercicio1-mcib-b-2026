@@ -6,55 +6,8 @@ import sqlite3
 from pathlib import Path
 
 app = Flask(__name__)
-
-@app.route('/')
-def home():
-    return jsonify({"mensaje": "Bienvenido al API del Grupo 7"})
-
-@app.route('/api/calcular_pago', methods=['POST'])
-def calcular_pago():
-    data = request.get_json()
-
-    hora_ingreso = data.get("hora_ingreso")
-    hora_salida = data.get("hora_salida")
-    tarifa_por_hora = data.get("tarifa", 1) 
-
-    # Validaciones
-    if not hora_ingreso or not hora_salida:
-        return jsonify({'error': 'Debe enviar hora_ingreso y hora_salida'}), 400
-
-    try:
-        ingreso = datetime.strptime(hora_ingreso, "%Y-%m-%d %H:%M:%S")
-        salida = datetime.strptime(hora_salida, "%Y-%m-%d %H:%M:%S")
-    except:
-        return jsonify({'error': 'Formato de fecha inválido. Use YYYY-MM-DD HH:MM:SS'}), 400
-
-    if salida <= ingreso:
-        return jsonify({'error': 'La hora de salida debe ser mayor que la de ingreso'}), 400
-
-    diferencia = salida - ingreso
-    
-    horas = diferencia.total_seconds() / 3600
-
-    horas_cobradas = math.ceil(horas)
-
-    total_pagar = horas_cobradas * tarifa_por_hora
-
-    return jsonify({
-        "hora_ingreso": hora_ingreso,
-        "hora_salida": hora_salida,
-        "horas_totales": round(horas, 2),
-        "horas_cobradas": horas_cobradas,
-        "tarifa_por_hora": tarifa_por_hora,
-        "total_pagar": total_pagar
-    })
-
-if __name__ == '__main__': #Esta linea ejecuta la aplicacion cuando yo en terminal haga python app.py
-    app.run(debug=True, host='0.0.0.0', port=8080)
-
-
-app = Flask(__name__)
 DB_PATH = "parking.db"
+
 def init_db():
     """Initialize database with parking records table"""
     conn = sqlite3.connect(DB_PATH)
@@ -74,15 +27,102 @@ def init_db():
 def index():
     return '''
     <h1>Acceso a Parqueadero</h1>
+
     <form method="post" action="/register">
-        <input type="text" name="license_plate" placeholder="Placa" required, maxlength="7">
+        <input type="text" name="license_plate" placeholder="Placa" required maxlength="7">
         <select name="action" required>
             <option value="entry">Entrada</option>
             <option value="exit">Salida</option>
         </select>
         <button type="submit">Registrar</button>
     </form>
+
+    <br><br>
+
+    <form method="get" action="/calcular_pago">
+        <input type="text" name="license_plate" placeholder="Placa para calcular pago" required>
+        <button type="submit">Calcular Pago</button>
+    </form>
     '''
+
+def calcular_pago_logica(license_plate):
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT entry_time, exit_time 
+        FROM parking_records 
+        WHERE license_plate = ?
+        ORDER BY id DESC LIMIT 1
+    ''', (license_plate.upper(),))
+
+    record = cursor.fetchone()
+    conn.close()
+
+    if not record:
+        return {"error": "No existe registro"}, 404
+
+    entry_time, exit_time = record
+
+    if not exit_time:
+        return {"error": "El vehículo aún no ha salido"}, 400
+
+    try:
+        ingreso = datetime.strptime(entry_time, "%Y-%m-%d %H:%M:%S")
+        salida = datetime.strptime(exit_time, "%Y-%m-%d %H:%M:%S")
+    except:
+        return {"error": "Formato de fecha inválido"}, 400
+
+    if salida <= ingreso:
+        return {"error": "La hora de salida debe ser mayor"}, 400
+
+    diferencia = salida - ingreso
+    horas = diferencia.total_seconds() / 3600
+    horas_cobradas = math.ceil(horas)
+
+    tarifa_por_hora = 2
+    total_pagar = horas_cobradas * tarifa_por_hora
+
+    return {
+        "hora_ingreso": entry_time,
+        "hora_salida": exit_time,
+        "horas_totales": round(horas, 2),
+        "horas_cobradas": horas_cobradas,
+        "tarifa_por_hora": tarifa_por_hora,
+        "total_pagar": total_pagar
+    }, 200
+
+
+@app.route('/api/calcular_pago/<license_plate>', methods=['GET'])
+def calcular_pago_api(license_plate):
+    data, status = calcular_pago_logica(license_plate)
+    return jsonify(data), status
+
+@app.route('/calcular_pago', methods=['GET'])
+def calcular_pago_html():
+    license_plate = request.args.get('license_plate')
+
+    if not license_plate:
+        return "<h2>Error: debe ingresar placa</h2><a href='/'>Volver</a>"
+
+    data, status = calcular_pago_logica(license_plate)
+
+    if status != 200:
+        return f"<h2>{data['error']}</h2><a href='/'>Volver</a>"
+
+    return f"""
+    <h2>Pago para {license_plate.upper()}</h2>
+    <p>Hora ingreso: {data['hora_ingreso']}</p>
+    <p>Hora salida: {data['hora_salida']}</p>
+    <p>Horas totales: {data['horas_totales']}</p>
+    <p>Horas cobradas: {data['horas_cobradas']}</p>
+    <p>Tarifa por hora: ${data['tarifa_por_hora']}</p>
+    <p><strong>Total a pagar: ${data['total_pagar']}</strong></p>
+    <a href="/">Volver</a>
+    """
+
+
 
 @app.route('/register', methods=['POST'])
 def register():
