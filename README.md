@@ -1,6 +1,57 @@
-GRUPO 7 - SERVICIO API PARA GESTION DE PARQUEADEROS
+# GRUPO 7 - SERVICIO API PARA GESTION DE PARQUEADEROS
 
-Parte 1 – Construcción del API
+## Preguntas para Trabajo Final
+
+### 1. ¿Si este sistema se desplegara en un parqueadero real con múltiples accesos, ¿qué cambios arquitectónicos serían necesarios para garantizar disponibilidad, sincronización y escalabilidad del servicio?
+
+Si el sistema de parqueaderos presentado se desplegara en un parqueadero real con múltiples accesos, sería necesario realizar varios cambios arquitectónicos para garantizar la disponibilidad, sincronización y escalabilidad del servicio.
+
+En primer lugar, la API desarrollada con Flask debería dejar de ejecutarse como una aplicación monolítica en una sola instancia. En su lugar se debería implementar una arquitectura basada en múltiples instancias detrás de un balanceador de carga, lo que permitiría distribuir las solicitudes entre varios servidores. Otra opción adicional sería colocar un servidor central donde corra la API y thin clients en los accesos que se conecten a la API alojada en el servidor central.
+
+En cuanto a la base de datos, el uso de SQLite no es adecuado para este escenario. Sería necesario migrar a un sistema de gestión de bases de datos más robusto como PostgreSQL o SQL Server, que soporte múltiples conexiones simultáneas, transacciones y mecanismos de bloqueo adecuados para evitar inconsistencias en los registros de entrada y salida de vehículos.
+
+Para garantizar la sincronización de datos entre múltiples accesos, se deberían implementar mecanismos de control de concurrencia y transacciones, asegurando que una misma placa no pueda registrar múltiples ingresos o salidas inconsistentes al mismo tiempo.
+
+Adicionalmente, para mejorar la escalabilidad, se podría contenerizar la aplicación utilizando Docker y gestionarla con un orquestador como Kubernetes, lo que permitiría escalar automáticamente el número de instancias según la demanda.
+
+Para la alta disponibilidad, sería recomendable desplegar la solución en una nube como Google Cloud Platform utilizando servicios gestionados como balanceadores de carga, bases de datos replicadas y almacenamiento redundante.
+
+Finalmente, se podrían incorporar mecanismos de cacheo y colas de mensajes para desacoplar procesos críticos, como el cálculo de pagos o registros, mejorando el rendimiento general del sistema y la experiencia del usuario.
+
+### 2. ¿Cómo podrían hacer el sistema más flexible para soportar distintos esquemas de cobro?
+
+Para hacer el sistema más flexible y permitir soportar distintos esquemas de cobro, sería necesario desacoplar la lógica de cálculo del valor a pagar del resto de la aplicación y hacerla configurable.
+En la implementación actual el cálculo del costo está directamente integrado en el código del API desarrollado con Flask, lo que limita la capacidad de adaptarse a nuevos modelos de negocio. Para mejorar esto se podría implementar un diseño basado en patrones como estrategia donde cada tipo de tarifa (por hora, tarifa fija, tarifas por fracciones, tarifas diferenciadas por horario) se maneje como un módulo independiente.
+
+Además, los esquemas de cobro deberían almacenarse en una base de datos en lugar de estar definidos en el código. Al migrar de SQLite a una base de datos más robusta como PostgreSQL, se podrían definir tablas para tarifas, reglas de cobro y configuraciones dinámicas que puedan modificarse sin necesidad de redeplegar el sistema.
+También sería recomendable exponer endpoints adicionales en el API que permitan administrar estos esquemas de cobro (crear, actualizar, eliminar tarifas), facilitando la gestión desde una interfaz administrativa.
+
+Para mayor flexibilidad, se podrían definir reglas basadas en condiciones como:
+•	Tipo de vehículo 
+•	Tiempo de permanencia 
+•	Horarios (diurno/nocturno) 
+•	Días especiales o feriados
+
+Finalmente se podría integrar pasarelas de pago como PlaceToPay o similares a los cuales se envía los datos de facturación y el cliente podría realizar el pago en línea mediante tarjetas bancarias.
+
+### 3. ¿Qué mejoras implementarían en el diseño de la API para separar correctamente la lógica de negocio (cálculo de tarifas, validaciones) de la capa de presentación (HTML)?
+
+Para separar correctamente la lógica de negocio de la capa de presentación, sería necesario aplicar una arquitectura en capas que permita desacoplar responsabilidades dentro del sistema.
+
+Actualmente, en la API desarrollada con Flask, la generación del HTML y la lógica de negocio están parcialmente mezcladas, lo que dificulta el mantenimiento y la escalabilidad del sistema.
+
+Como mejora, se podría implementar una estructura basada en el patrón MVC (Modelo-Vista-Controlador) que estaria estructurado de la siguente manera:
+•	Modelo: Encargado de la interacción con la base de datos. Aquí se gestionaría el acceso a datos en SQLite o una base de datos más robusta. 
+•	Controlador: Manejaría los endpoints del API, recibiendo las solicitudes HTTP, validando datos de entrada y delegando la lógica de negocio a servicios especializados. 
+•	Servicios: Aquí residiría la lógica de negocio, como el cálculo de tarifas, validaciones de placas y reglas de operación. Esta capa sería independiente del framework y reutilizable. 
+•	Vista: Encargada únicamente de la presentación, utilizando templates HTML o incluso separando completamente el frontend en otra aplicación. 
+
+Adicionalmente, se recomienda transformar el sistema en una API REST pura que devuelva respuestas en formato JSON, desacoplando completamente el frontend. De esta manera, el HTML podría ser consumido por un cliente independiente mientras la API se enfoca únicamente en la lógica y los datos.
+
+También sería buena práctica organizar el proyecto en módulos separados como por ejemplo: routes/, services/, models/, templates/, lo que facilitaría la mantenibilidad y desarrollo del sistema.
+
+
+## Parte 1 – Construcción del API
 
 •	Código fuente del API
 
